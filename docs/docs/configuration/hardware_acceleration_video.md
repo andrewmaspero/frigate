@@ -62,6 +62,29 @@ Or map in all the `/dev/video*` devices.
 
 :::
 
+## Apple Silicon
+
+Apple's VideoToolbox framework can be used for hardware accelerated
+decoding and encoding on macOS hosts. Containers cannot access
+VideoToolbox directly, so Frigate can offload `ffmpeg` processing to a
+host service over ZMQ.
+
+```yaml
+ffmpeg:
+  hwaccel_args: preset-videotoolbox-h264  # or preset-videotoolbox-h265
+  device: zmq
+  endpoint: tcp://host.docker.internal:5558
+```
+
+Make sure the [`apple-silicon-ffmpeg`](https://github.com/frigate-nvr/apple-silicon-ffmpeg)
+service is running on the host and listening on the matching port. This
+service exposes a ZMQ endpoint that performs all decoding and encoding
+using VideoToolbox, allowing the container to benefit from hardware
+acceleration without direct access to macOS APIs.
+
+When running on macOS, use `host.docker.internal` rather than
+`localhost` because Docker Desktop does not support `--net=host`.
+
 ## Intel-based CPUs
 
 :::info

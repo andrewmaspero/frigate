@@ -19,6 +19,13 @@ Object detection and enrichments (like Semantic Search, Face Recognition, and Li
 
   - OpenVINO will automatically be detected and used for enrichments in the default Frigate image.
 
+- **Apple Silicon**
+
+  - When `device: zmq` is configured, supported enrichments can offload
+    processing to the host's Neural Engine via the
+    [`apple-silicon-transcriber`](https://github.com/frigate-nvr/apple-silicon-transcriber)
+    or similar services.
+
 - **Nvidia**
   - Nvidia GPUs will automatically be detected and used for enrichments in the `-tensorrt` Frigate image.
   - Jetson devices will automatically be detected and used for enrichments in the `-tensorrt-jp6` Frigate image.

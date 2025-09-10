@@ -424,7 +424,8 @@ Using the detector config below will connect to the client:
 ```yaml
 detectors:
   apple-silicon:
-    type: zmq
+    type: onnx
+    device: zmq
     endpoint: tcp://host.docker.internal:5555
 ```
 

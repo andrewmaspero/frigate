@@ -98,6 +98,24 @@ See the [Hardware Accelerated Enrichments](/configuration/hardware_acceleration_
 
 :::
 
+### Host Offload
+
+Embeddings can be generated on the host by offloading inference over
+ZMQ.
+
+```yaml
+semantic_search:
+  enabled: True
+  model_size: large
+  device: zmq
+  endpoint: tcp://host.docker.internal:5557
+```
+
+Run a compatible service on the host (for example
+`apple-silicon-detector`) and ensure the port matches the `endpoint`.
+
+:::
+
 ## Usage and Best Practices
 
 1. Semantic Search is used in conjunction with the other filters available on the Explore page. Use a combination of traditional filtering and Semantic Search for the best results.
