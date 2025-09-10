@@ -85,6 +85,7 @@ const sidebars: SidebarsConfig = {
         "configuration/pwa",
         "configuration/tls",
         "configuration/advanced",
+        "configuration/host_services",
       ],
     },
     Integrations: [
