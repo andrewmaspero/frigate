@@ -25,6 +25,7 @@ from frigate.const import (
     PROCESS_PRIORITY_HIGH,
     REQUEST_REGION_GRID,
 )
+from frigate.ffmpeg.zmq import start_or_restart_ffmpeg, stop_ffmpeg
 from frigate.log import LogPipe
 from frigate.motion import MotionDetector
 from frigate.motion.improved_motion import ImprovedMotionDetector
@@ -55,48 +56,8 @@ from frigate.util.process import FrigateProcess
 
 logger = logging.getLogger(__name__)
 
-
-def stop_ffmpeg(ffmpeg_process: sp.Popen[Any], logger: logging.Logger):
-    logger.info("Terminating the existing ffmpeg process...")
-    ffmpeg_process.terminate()
-    try:
-        logger.info("Waiting for ffmpeg to exit gracefully...")
-        ffmpeg_process.communicate(timeout=30)
-    except sp.TimeoutExpired:
-        logger.info("FFmpeg didn't exit. Force killing...")
-        ffmpeg_process.kill()
-        ffmpeg_process.communicate()
-    ffmpeg_process = None
-
-
-def start_or_restart_ffmpeg(
-    ffmpeg_cmd, logger, logpipe: LogPipe, frame_size=None, ffmpeg_process=None
-) -> sp.Popen[Any]:
-    if ffmpeg_process is not None:
-        stop_ffmpeg(ffmpeg_process, logger)
-
-    if frame_size is None:
-        process = sp.Popen(
-            ffmpeg_cmd,
-            stdout=sp.DEVNULL,
-            stderr=logpipe,
-            stdin=sp.DEVNULL,
-            start_new_session=True,
-        )
-    else:
-        process = sp.Popen(
-            ffmpeg_cmd,
-            stdout=sp.PIPE,
-            stderr=logpipe,
-            stdin=sp.DEVNULL,
-            bufsize=frame_size * 10,
-            start_new_session=True,
-        )
-    return process
-
-
 def capture_frames(
-    ffmpeg_process: sp.Popen[Any],
+    ffmpeg_process,
     config: CameraConfig,
     shm_frame_count: int,
     frame_index: int,
@@ -133,7 +94,10 @@ def capture_frames(
         frame_name = f"{config.name}_frame{frame_index}"
         frame_buffer = frame_manager.write(frame_name)
         try:
-            frame_buffer[:] = ffmpeg_process.stdout.read(frame_size)
+            if hasattr(ffmpeg_process, "read") and not hasattr(ffmpeg_process, "stdout"):
+                frame_buffer[:] = ffmpeg_process.read(frame_size)
+            else:
+                frame_buffer[:] = ffmpeg_process.stdout.read(frame_size)
         except Exception:
             # shutdown has been initiated
             if stop_event.is_set():
@@ -141,7 +105,7 @@ def capture_frames(
 
             logger.error(f"{config.name}: Unable to read frames from ffmpeg process.")
 
-            if ffmpeg_process.poll() is not None:
+            if hasattr(ffmpeg_process, "poll") and ffmpeg_process.poll() is not None:
                 logger.error(
                     f"{config.name}: ffmpeg process is not running. exiting capture thread..."
                 )
@@ -316,6 +280,8 @@ class CameraWatchdog(threading.Thread):
                             self.logger,
                             p["logpipe"],
                             ffmpeg_process=p["process"],
+                            mode=self.config.ffmpeg.mode,
+                            zmq_endpoint=self.config.ffmpeg.endpoint,
                         )
 
                         for role in p["roles"]:
@@ -340,7 +306,12 @@ class CameraWatchdog(threading.Thread):
 
                 p["logpipe"].dump()
                 p["process"] = start_or_restart_ffmpeg(
-                    p["cmd"], self.logger, p["logpipe"], ffmpeg_process=p["process"]
+                    p["cmd"],
+                    self.logger,
+                    p["logpipe"],
+                    ffmpeg_process=p["process"],
+                    mode=self.config.ffmpeg.mode,
+                    zmq_endpoint=self.config.ffmpeg.endpoint,
                 )
 
         self.stop_all_ffmpeg()
@@ -352,9 +323,14 @@ class CameraWatchdog(threading.Thread):
             c["cmd"] for c in self.config.ffmpeg_cmds if "detect" in c["roles"]
         ][0]
         self.ffmpeg_detect_process = start_or_restart_ffmpeg(
-            ffmpeg_cmd, self.logger, self.logpipe, self.frame_size
+            ffmpeg_cmd,
+            self.logger,
+            self.logpipe,
+            self.frame_size,
+            mode=self.config.ffmpeg.mode,
+            zmq_endpoint=self.config.ffmpeg.endpoint,
         )
-        self.ffmpeg_pid.value = self.ffmpeg_detect_process.pid
+        self.ffmpeg_pid.value = getattr(self.ffmpeg_detect_process, "pid", 0)
         self.capture_thread = CameraCaptureRunner(
             self.config,
             self.shm_frame_count,
@@ -383,7 +359,13 @@ class CameraWatchdog(threading.Thread):
                     "cmd": c["cmd"],
                     "roles": c["roles"],
                     "logpipe": logpipe,
-                    "process": start_or_restart_ffmpeg(c["cmd"], self.logger, logpipe),
+                    "process": start_or_restart_ffmpeg(
+                        c["cmd"],
+                        self.logger,
+                        logpipe,
+                        mode=self.config.ffmpeg.mode,
+                        zmq_endpoint=self.config.ffmpeg.endpoint,
+                    ),
                 }
             )
 

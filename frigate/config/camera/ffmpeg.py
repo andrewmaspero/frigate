@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Union
 
 from pydantic import Field, field_validator
+from typing_extensions import Literal
 
 from frigate.const import DEFAULT_FFMPEG_VERSION, INCLUDED_FFMPEG_VERSIONS
 
@@ -66,6 +67,12 @@ class FfmpegConfig(FrigateBaseModel):
     apple_compatibility: bool = Field(
         default=False,
         title="Set tag on HEVC (H.265) recording stream to improve compatibility with Apple players.",
+    )
+    mode: Literal["local", "zmq"] = Field(
+        default="local", title="FFmpeg execution mode."
+    )
+    endpoint: str | None = Field(
+        default=None, title="ZMQ endpoint for remote FFmpeg service."
     )
 
     @property

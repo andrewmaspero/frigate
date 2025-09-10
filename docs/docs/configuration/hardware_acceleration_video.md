@@ -9,6 +9,30 @@ It is highly recommended to use a GPU for hardware acceleration video decoding i
 
 Depending on your system, these parameters may not be compatible. More information on hardware accelerated decoding for ffmpeg can be found here: https://trac.ffmpeg.org/wiki/HWAccelIntro
 
+## Apple Silicon via Remote FFmpeg
+
+Frigate can use a separate FFmpeg service to leverage Apple Silicon's `videotoolbox` hardware acceleration. The service communicates over ZMQ and runs on the host system.
+
+1. Start the service:
+
+```bash
+python apple_silicon_ffmpeg/service.py --bind tcp://0.0.0.0:5555
+```
+
+2. Configure a camera to use the remote service:
+
+```yaml
+cameras:
+  cam1:
+    ffmpeg:
+      mode: zmq
+      endpoint: tcp://localhost:5555
+      inputs:
+        - path: rtsp://camera/stream
+          roles: [detect]
+```
+
+When `mode` is set to `zmq`, Frigate sends commands and receives frames over the specified `endpoint` instead of spawning a local FFmpeg process.
 
 ## Raspberry Pi 3/4
 
