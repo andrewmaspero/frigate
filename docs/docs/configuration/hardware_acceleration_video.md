@@ -34,6 +34,17 @@ cameras:
 
 When `mode` is set to `zmq`, Frigate sends commands and receives frames over the specified `endpoint` instead of spawning a local FFmpeg process.
 
+## Apple Silicon
+
+When running inside Docker on macOS, VideoToolbox cannot be accessed directly. Run FFmpeg on the host and connect Frigate to the relayed stream using VideoToolbox presets.
+
+```yaml
+ffmpeg:
+  hwaccel_args: preset-videotoolbox-h264
+```
+
+See the [Apple Silicon guide](../guides/apple_silicon.md) for full setup details.
+
 ## Raspberry Pi 3/4
 
 Ensure you increase the allocated RAM for your GPU to at least 128 (`raspi-config` > Performance Options > GPU Memory).

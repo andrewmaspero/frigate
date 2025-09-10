@@ -412,6 +412,8 @@ Note that the labelmap uses a subset of the complete COCO label set that has onl
 
 The NPU in Apple Silicon can't be accessed from within a container, so the [Apple Silicon detector client](https://github.com/frigate-nvr/apple-silicon-detector) must first be setup. It is recommended to use the Frigate docker image with `-standard-arm64` suffix, for example  `ghcr.io/blakeblackshear/frigate:stable-standard-arm64`.
 
+For a complete walkthrough including audio transcription, embeddings, and VideoToolbox decoding, see the [Apple Silicon guide](../guides/apple_silicon.md).
+
 ### Setup
 
 1. Setup the [Apple Silicon detector client](https://github.com/frigate-nvr/apple-silicon-detector) and run the client

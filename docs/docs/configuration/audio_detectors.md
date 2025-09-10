@@ -77,6 +77,8 @@ audio:
 
 Frigate supports fully local audio transcription using either `sherpa-onnx` or OpenAI’s open-source Whisper models via `faster-whisper`. To enable transcription, it is recommended to only configure the features at the global level, and enable it at the individual camera level.
 
+Apple Silicon users can offload transcription to the host with a ZMQ service; see the [Apple Silicon guide](../guides/apple_silicon.md) for setup instructions.
+
 ```yaml
 audio_transcription:
   enabled: False
