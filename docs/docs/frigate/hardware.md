@@ -192,6 +192,8 @@ With the [Apple Silicon](../configuration/object_detectors.md#apple-silicon-dete
 
 Apple Silicon can not run within a container, so a ZMQ proxy is utilized to communicate with [the Apple Silicon Frigate detector](https://github.com/frigate-nvr/apple-silicon-detector) which runs on the host. This should add minimal latency when run on the same device.
 
+See the [Apple Silicon guide](../guides/apple_silicon.md) for details on configuring host-side services for detection, audio transcription, embeddings, and VideoToolbox decoding.
+
 :::
 
 | Name      | YOLOv9 Inference Time  |

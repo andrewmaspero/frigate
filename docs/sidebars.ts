@@ -17,6 +17,7 @@ const sidebars: SidebarsConfig = {
     Guides: [
       "guides/getting_started",
       "guides/configuring_go2rtc",
+      "guides/apple_silicon",
       "guides/ha_notifications",
       "guides/ha_network_storage",
       "guides/reverse_proxy",

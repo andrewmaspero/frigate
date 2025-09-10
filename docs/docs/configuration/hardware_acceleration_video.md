@@ -10,6 +10,17 @@ It is highly recommended to use a GPU for hardware acceleration video decoding i
 Depending on your system, these parameters may not be compatible. More information on hardware accelerated decoding for ffmpeg can be found here: https://trac.ffmpeg.org/wiki/HWAccelIntro
 
 
+## Apple Silicon
+
+When running inside Docker on macOS, VideoToolbox cannot be accessed directly. Run FFmpeg on the host and connect Frigate to the relayed stream using VideoToolbox presets.
+
+```yaml
+ffmpeg:
+  hwaccel_args: preset-videotoolbox-h264
+```
+
+See the [Apple Silicon guide](../guides/apple_silicon.md) for full setup details.
+
 ## Raspberry Pi 3/4
 
 Ensure you increase the allocated RAM for your GPU to at least 128 (`raspi-config` > Performance Options > GPU Memory).
