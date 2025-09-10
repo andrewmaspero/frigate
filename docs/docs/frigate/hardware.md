@@ -194,6 +194,11 @@ Apple Silicon can not run within a container, so a ZMQ proxy is utilized to comm
 
 :::
 
+An Apple Silicon host may also be used for audio transcription by running the
+[apple-silicon-transcriber](https://github.com/frigate-nvr/apple-silicon-transcriber)
+service on the host OS. Configure Frigate with `audio_transcription.device: zmq`
+and provide the service's `endpoint` to offload transcription to the NPU.
+
 | Name      | YOLOv9 Inference Time  |
 | --------- | ---------------------- |
 | M3 Pro    | t-320: 6 ms s-320: 8ms |

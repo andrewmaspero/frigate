@@ -47,6 +47,8 @@ export interface CameraConfig {
     enabled: boolean;
     enabled_in_config: boolean;
     live_enabled: boolean;
+    device?: "CPU" | "GPU" | "zmq";
+    endpoint?: string | null;
   };
   best_image_timeout: number;
   birdseye: {
@@ -340,6 +342,10 @@ export interface FrigateConfig {
 
   audio_transcription: {
     enabled: boolean;
+    device: "CPU" | "GPU" | "zmq";
+    model_size: "small" | "large";
+    language: string;
+    endpoint?: string | null;
   };
 
   birdseye: BirdseyeConfig;

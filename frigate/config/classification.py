@@ -23,6 +23,7 @@ class SemanticSearchModelEnum(str, Enum):
 class EnrichmentsDeviceEnum(str, Enum):
     GPU = "GPU"
     CPU = "CPU"
+    ZMQ = "zmq"
 
 
 class TriggerType(str, Enum):
@@ -57,6 +58,10 @@ class AudioTranscriptionConfig(FrigateBaseModel):
     )
     live_enabled: Optional[bool] = Field(
         default=False, title="Enable live transcriptions."
+    )
+    endpoint: str | None = Field(
+        default=None,
+        title="ZMQ endpoint for remote audio transcription when device is 'zmq'.",
     )
 
 

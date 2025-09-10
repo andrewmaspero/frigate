@@ -107,7 +107,7 @@ The optional config parameters that can be set at the global level include:
   - It is recommended to only configure the features at the global level, and enable it at the individual camera level.
 - **`device`**: Device to use to run transcription and translation models.
   - Default: `CPU`
-  - This can be `CPU` or `GPU`. The `sherpa-onnx` models are lightweight and run on the CPU only. The `whisper` models can run on GPU but are only supported on CUDA hardware.
+  - This can be `CPU`, `GPU`, or `zmq`. The `sherpa-onnx` models are lightweight and run on the CPU only. The `whisper` models can run on GPU but are only supported on CUDA hardware. Set this to `zmq` to forward audio to an external transcription service such as the Apple Silicon transcriber.
 - **`model_size`**: The size of the model used for live transcription.
   - Default: `small`
   - This can be `small` or `large`. The `small` setting uses `sherpa-onnx` models that are fast, lightweight, and always run on the CPU but are not as accurate as the `whisper` model.
@@ -118,8 +118,23 @@ The optional config parameters that can be set at the global level include:
   - You must use a valid [language code](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py#L10).
   - Transcriptions for `speech` events are translated.
   - Live audio is translated only if you are using the `large` model. The `small` `sherpa-onnx` model is English-only.
+- **`endpoint`**: ZMQ endpoint of a remote transcription service when `device` is set to `zmq`.
 
-The only field that is valid at the camera level is `enabled`.
+The fields that are valid at the camera level are `enabled`, `live_enabled`, `device`, and `endpoint`.
+
+Example configuration using a remote Apple Silicon transcriber:
+
+```yaml
+audio_transcription:
+  enabled: true
+  device: zmq
+  endpoint: tcp://host.docker.internal:5557
+
+cameras:
+  back_yard:
+    audio_transcription:
+      enabled: true
+```
 
 #### Live transcription
 
