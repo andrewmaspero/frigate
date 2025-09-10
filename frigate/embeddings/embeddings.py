@@ -107,32 +107,76 @@ class Embeddings:
                 },
             )
 
-        if self.config.semantic_search.model == SemanticSearchModelEnum.jinav2:
-            # Single JinaV2Embedding instance for both text and vision
-            self.embedding = JinaV2Embedding(
-                model_size=self.config.semantic_search.model_size,
-                requestor=self.requestor,
-                device=config.semantic_search.device
-                or ("GPU" if config.semantic_search.model_size == "large" else "CPU"),
-            )
-            self.text_embedding = lambda input_data: self.embedding(
-                input_data, embedding_type="text"
-            )
-            self.vision_embedding = lambda input_data: self.embedding(
-                input_data, embedding_type="vision"
-            )
-        else:  # Default to jinav1
-            self.text_embedding = JinaV1TextEmbedding(
-                model_size=config.semantic_search.model_size,
-                requestor=self.requestor,
-                device="CPU",
-            )
-            self.vision_embedding = JinaV1ImageEmbedding(
-                model_size=config.semantic_search.model_size,
-                requestor=self.requestor,
-                device=config.semantic_search.device
-                or ("GPU" if config.semantic_search.model_size == "large" else "CPU"),
-            )
+        # Check if external embeddings are enabled
+        use_external_text = (hasattr(self.config.semantic_search, 'external') and 
+                            self.config.semantic_search.external and 
+                            self.config.semantic_search.external.text_enabled)
+        use_external_vision = (hasattr(self.config.semantic_search, 'external') and 
+                              self.config.semantic_search.external and 
+                              self.config.semantic_search.external.vision_enabled)
+
+        if use_external_text or use_external_vision:
+            try:
+                from frigate.external_models.embeddings_wrapper import (
+                    ExternalTextEmbedding,
+                    ExternalVisionEmbedding,
+                )
+                
+                if use_external_text:
+                    self.text_embedding = ExternalTextEmbedding(
+                        endpoint=self.config.semantic_search.external.text_endpoint,
+                        embedding_dim=self.config.semantic_search.external.text_embedding_dim,
+                        request_timeout_ms=self.config.semantic_search.external.request_timeout_ms,
+                        linger_ms=self.config.semantic_search.external.linger_ms,
+                    )
+                    logger.info("Using external text embeddings")
+                    
+                if use_external_vision:
+                    self.vision_embedding = ExternalVisionEmbedding(
+                        endpoint=self.config.semantic_search.external.vision_endpoint,
+                        embedding_dim=self.config.semantic_search.external.vision_embedding_dim,
+                        request_timeout_ms=self.config.semantic_search.external.request_timeout_ms,
+                        linger_ms=self.config.semantic_search.external.linger_ms,
+                    )
+                    logger.info("Using external vision embeddings")
+                    
+            except ImportError as e:
+                logger.warning(f"Could not load external embeddings: {e}. Using built-in models.")
+                use_external_text = False
+                use_external_vision = False
+
+        # Initialize built-in models for any that aren't using external
+        if not use_external_text or not use_external_vision:
+            if self.config.semantic_search.model == SemanticSearchModelEnum.jinav2:
+                # Single JinaV2Embedding instance for both text and vision
+                self.embedding = JinaV2Embedding(
+                    model_size=self.config.semantic_search.model_size,
+                    requestor=self.requestor,
+                    device=config.semantic_search.device
+                    or ("GPU" if config.semantic_search.model_size == "large" else "CPU"),
+                )
+                if not use_external_text:
+                    self.text_embedding = lambda input_data: self.embedding(
+                        input_data, embedding_type="text"
+                    )
+                if not use_external_vision:
+                    self.vision_embedding = lambda input_data: self.embedding(
+                        input_data, embedding_type="vision"
+                    )
+            else:  # Default to jinav1
+                if not use_external_text:
+                    self.text_embedding = JinaV1TextEmbedding(
+                        model_size=config.semantic_search.model_size,
+                        requestor=self.requestor,
+                        device="CPU",
+                    )
+                if not use_external_vision:
+                    self.vision_embedding = JinaV1ImageEmbedding(
+                        model_size=config.semantic_search.model_size,
+                        requestor=self.requestor,
+                        device=config.semantic_search.device
+                        or ("GPU" if config.semantic_search.model_size == "large" else "CPU"),
+                    )
 
     def update_stats(self) -> None:
         self.metrics.image_embeddings_eps.value = self.image_eps.eps()

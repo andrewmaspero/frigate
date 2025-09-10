@@ -156,7 +156,28 @@ class AudioEventMaintainer(threading.Thread):
         self.camera_config = camera
         self.camera_metrics = camera_metrics
         self.stop_event = stop_event
-        self.detector = AudioTfl(stop_event, self.camera_config.audio.num_threads)
+        
+        # Initialize audio detector - use external if configured
+        if (hasattr(self.camera_config.audio, 'external') and 
+            self.camera_config.audio.external and 
+            self.camera_config.audio.external.enabled):
+            try:
+                from frigate.external_models.audio_detection import ZmqAudioDetectionConfig
+                from frigate.external_models.audio_wrapper import ExternalAudioDetector
+                
+                zmq_config = ZmqAudioDetectionConfig(
+                    endpoint=self.camera_config.audio.external.endpoint,
+                    request_timeout_ms=self.camera_config.audio.external.request_timeout_ms,
+                    linger_ms=self.camera_config.audio.external.linger_ms,
+                    enabled=True,
+                )
+                self.detector = ExternalAudioDetector(zmq_config, self.camera_config.audio.num_threads)
+                self.logger.info(f"Using external audio detector for {self.camera_config.name}")
+            except ImportError as e:
+                self.logger.warning(f"Could not load external audio detector: {e}. Using built-in detector.")
+                self.detector = AudioTfl(stop_event, self.camera_config.audio.num_threads)
+        else:
+            self.detector = AudioTfl(stop_event, self.camera_config.audio.num_threads)
         self.shape = (int(round(AUDIO_DURATION * AUDIO_SAMPLE_RATE)),)
         self.chunk_size = int(round(AUDIO_DURATION * AUDIO_SAMPLE_RATE * 2))
         self.logger = logging.getLogger(f"audio.{self.camera_config.name}")

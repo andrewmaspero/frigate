@@ -6,7 +6,7 @@ from frigate.const import AUDIO_MIN_CONFIDENCE
 
 from ..base import FrigateBaseModel
 
-__all__ = ["AudioConfig", "AudioFilterConfig"]
+__all__ = ["AudioConfig", "AudioFilterConfig", "ExternalAudioConfig"]
 
 
 DEFAULT_LISTEN_AUDIO = ["bark", "fire_alarm", "scream", "speech", "yell"]
@@ -19,6 +19,18 @@ class AudioFilterConfig(FrigateBaseModel):
         lt=1.0,
         title="Minimum detection confidence threshold for audio to be counted.",
     )
+
+
+class ExternalAudioConfig(FrigateBaseModel):
+    """Configuration for external audio detection."""
+    enabled: bool = Field(default=False, title="Enable external audio detection")
+    endpoint: str = Field(
+        default="ipc:///tmp/cache/zmq_audio", title="ZMQ IPC endpoint for audio detection"
+    )
+    request_timeout_ms: int = Field(
+        default=200, title="ZMQ request timeout in milliseconds"
+    )
+    linger_ms: int = Field(default=0, title="ZMQ socket linger in milliseconds")
 
 
 class AudioConfig(FrigateBaseModel):
@@ -39,3 +51,6 @@ class AudioConfig(FrigateBaseModel):
         None, title="Keep track of original state of audio detection."
     )
     num_threads: int = Field(default=2, title="Number of detection threads", ge=1)
+    external: Optional[ExternalAudioConfig] = Field(
+        default_factory=ExternalAudioConfig, title="External audio detection configuration"
+    )
