@@ -1,9 +1,12 @@
 """Set up audio transcription models based on model size."""
 
+import json
 import logging
 import os
 
+import numpy as np
 import sherpa_onnx
+import zmq
 from faster_whisper.utils import download_model
 
 from frigate.comms.inter_process import InterProcessRequestor
@@ -22,6 +25,13 @@ class AudioTranscriptionModelRunner:
     ):
         self.model: AudioTranscriptionModel = None
         self.requestor = InterProcessRequestor()
+        self.device = device
+
+        if device == "zmq":
+            # Initialize ZMQ context for remote transcription
+            self._zmq_context = zmq.Context()
+            self._sockets: dict[str, zmq.Socket] = {}
+            return
 
         if model_size == "large":
             # use the Whisper download function instead of our own
@@ -79,3 +89,28 @@ class AudioTranscriptionModelRunner:
             ModelDownloader.download_from_url(self.model_files[file_name], path)
         except Exception as e:
             logger.error(f"Failed to download {path}: {e}")
+
+    def transcribe_zmq(self, audio: np.ndarray, endpoint: str) -> str | None:
+        """Forward audio to a remote transcription service over ZMQ."""
+        if self.device != "zmq":
+            return None
+
+        socket = self._sockets.get(endpoint)
+        if socket is None:
+            socket = self._zmq_context.socket(zmq.REQ)
+            socket.connect(endpoint)
+            self._sockets[endpoint] = socket
+
+        header = {
+            "shape": list(audio.shape),
+            "dtype": str(audio.dtype.name),
+        }
+
+        try:
+            socket.send_multipart(
+                [json.dumps(header).encode("utf-8"), memoryview(audio.tobytes())]
+            )
+            return socket.recv_string()
+        except Exception as e:
+            logger.error(f"ZMQ transcription failed: {e}")
+            return None

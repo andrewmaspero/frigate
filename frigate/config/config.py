@@ -513,7 +513,7 @@ class FrigateConfig(FrigateBaseModel):
             allowed_fields_map = {
                 "face_recognition": ["enabled", "min_area"],
                 "lpr": ["enabled", "expire_time", "min_area", "enhancement"],
-                "audio_transcription": ["enabled", "live_enabled"],
+                "audio_transcription": ["enabled", "live_enabled", "device", "endpoint"],
             }
 
             for section in allowed_fields_map:

@@ -78,6 +78,24 @@ class AudioTranscriptionRealTimeProcessor(RealTimeProcessorApi):
     def __process_audio_stream(
         self, audio_data: np.ndarray
     ) -> Optional[tuple[str, bool]]:
+        if self.config.audio_transcription.device == "zmq":
+            endpoint = (
+                self.camera_config.audio_transcription.endpoint
+                or self.config.audio_transcription.endpoint
+            )
+
+            if not endpoint:
+                logger.error(
+                    "Audio transcription endpoint must be configured when device is 'zmq'"
+                )
+                return None
+
+            text = self.model_runner.transcribe_zmq(audio_data, endpoint)
+            if not text:
+                logger.debug("No transcription returned from remote service")
+                return None
+            return text.strip(), True
+
         if (
             self.model_runner.model is None
             and self.config.audio_transcription.model_size == "small"
@@ -184,7 +202,7 @@ class AudioTranscriptionRealTimeProcessor(RealTimeProcessorApi):
 
                 self.audio_queue.task_done()
 
-                if is_endpoint:
+                if is_endpoint and self.config.audio_transcription.device != "zmq":
                     self.reset()
 
             except queue.Empty:
