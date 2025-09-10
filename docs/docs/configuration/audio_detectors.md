@@ -80,9 +80,15 @@ Frigate supports fully local audio transcription using either `sherpa-onnx` or O
 ```yaml
 audio_transcription:
   enabled: False
-  device: ...
+  device: zmq
+  endpoint: tcp://host.docker.internal:5556
   model_size: ...
 ```
+
+This configuration offloads transcription to an
+[`apple-silicon-transcriber`](https://github.com/frigate-nvr/apple-silicon-transcriber)
+service running on the host. Use `host.docker.internal` on macOS to reach
+services outside the container.
 
 Enable audio transcription for select cameras at the camera level:
 
@@ -107,7 +113,10 @@ The optional config parameters that can be set at the global level include:
   - It is recommended to only configure the features at the global level, and enable it at the individual camera level.
 - **`device`**: Device to use to run transcription and translation models.
   - Default: `CPU`
-  - This can be `CPU` or `GPU`. The `sherpa-onnx` models are lightweight and run on the CPU only. The `whisper` models can run on GPU but are only supported on CUDA hardware.
+  - This can be `CPU`, `GPU`, or `zmq`. The `sherpa-onnx` models are
+    lightweight and run on the CPU only. The `whisper` models can run on
+    GPU but are only supported on CUDA hardware. Setting `zmq` offloads
+    transcription to a host service such as `apple-silicon-transcriber`.
 - **`model_size`**: The size of the model used for live transcription.
   - Default: `small`
   - This can be `small` or `large`. The `small` setting uses `sherpa-onnx` models that are fast, lightweight, and always run on the CPU but are not as accurate as the `whisper` model.

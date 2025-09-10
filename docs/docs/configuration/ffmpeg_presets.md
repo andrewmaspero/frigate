@@ -22,6 +22,8 @@ See [the hwaccel docs](/configuration/hardware_acceleration_video.md) for more i
 | preset-jetson-h264    | Nvidia Jetson with h264 stream |                                                       |
 | preset-jetson-h265    | Nvidia Jetson with h265 stream |                                                       |
 | preset-rkmpp        | Rockchip MPP  | Use image with \*-rk suffix and privileged mode       |
+| preset-videotoolbox-h264 | Apple VideoToolbox with h264 stream | Requires `apple-silicon-ffmpeg` host service |
+| preset-videotoolbox-h265 | Apple VideoToolbox with h265 stream | Requires `apple-silicon-ffmpeg` host service |
 
 ### Input Args Presets
 
