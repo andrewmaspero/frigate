@@ -24,6 +24,9 @@ class ZmqDetectorConfig(BaseDetectorConfig):
         default=200, title="ZMQ request timeout in milliseconds"
     )
     linger_ms: int = Field(default=0, title="ZMQ socket linger in milliseconds")
+    use_external_models: bool = Field(
+        default=False, title="Use new external models framework"
+    )
 
 
 class ZmqIpcDetector(DetectionApi):
@@ -53,12 +56,39 @@ class ZmqIpcDetector(DetectionApi):
     def __init__(self, detector_config: ZmqDetectorConfig):
         super().__init__(detector_config)
 
-        self._context = zmq.Context()
-        self._endpoint = detector_config.endpoint
-        self._request_timeout_ms = detector_config.request_timeout_ms
-        self._linger_ms = detector_config.linger_ms
-        self._socket = None
-        self._create_socket()
+        # Check if we should use the new external models framework
+        if detector_config.use_external_models:
+            try:
+                from frigate.external_models.base import ModelTypeEnum
+                from frigate.external_models.object_detection import (
+                    ZmqObjectDetectionConfig,
+                    ZmqObjectDetector,
+                )
+                
+                external_config = ZmqObjectDetectionConfig(
+                    endpoint=detector_config.endpoint,
+                    model_type=ModelTypeEnum.object_detection,
+                    request_timeout_ms=detector_config.request_timeout_ms,
+                    linger_ms=detector_config.linger_ms,
+                    enabled=True,
+                )
+                self._external_detector = ZmqObjectDetector(external_config, detector_config)
+                self._use_external = True
+                logger.info("Using new external models framework for ZMQ detection")
+            except ImportError as e:
+                logger.warning(f"Could not load external models framework: {e}. Falling back to legacy implementation.")
+                self._use_external = False
+        else:
+            self._use_external = False
+
+        if not self._use_external:
+            # Legacy implementation
+            self._context = zmq.Context()
+            self._endpoint = detector_config.endpoint
+            self._request_timeout_ms = detector_config.request_timeout_ms
+            self._linger_ms = detector_config.linger_ms
+            self._socket = None
+            self._create_socket()
 
         # Preallocate zero result for error paths
         self._zero_result = np.zeros((20, 6), np.float32)
@@ -111,6 +141,11 @@ class ZmqIpcDetector(DetectionApi):
             return self._zero_result
 
     def detect_raw(self, tensor_input: np.ndarray) -> np.ndarray:
+        # Use external models framework if enabled
+        if self._use_external:
+            return self._external_detector.detect_raw(tensor_input)
+            
+        # Legacy implementation
         try:
             header_bytes = self._build_header(tensor_input)
             payload_bytes = memoryview(tensor_input.tobytes(order="C"))
@@ -146,7 +181,10 @@ class ZmqIpcDetector(DetectionApi):
 
     def __del__(self) -> None:  # pragma: no cover - best-effort cleanup
         try:
-            if self._socket is not None:
+            if hasattr(self, '_use_external') and self._use_external:
+                if hasattr(self, '_external_detector'):
+                    del self._external_detector
+            elif hasattr(self, '_socket') and self._socket is not None:
                 self._socket.close(linger=self.detector_config.linger_ms)
         except Exception:
             pass

@@ -10,6 +10,7 @@ __all__ = [
     "CameraLicensePlateRecognitionConfig",
     "FaceRecognitionConfig",
     "SemanticSearchConfig",
+    "ExternalEmbeddingsConfig",
     "CameraSemanticSearchConfig",
     "LicensePlateRecognitionConfig",
 ]
@@ -123,6 +124,24 @@ class ClassificationConfig(FrigateBaseModel):
     )
 
 
+class ExternalEmbeddingsConfig(FrigateBaseModel):
+    """Configuration for external embeddings processing."""
+    text_enabled: bool = Field(default=False, title="Enable external text embeddings")
+    vision_enabled: bool = Field(default=False, title="Enable external vision embeddings")
+    text_endpoint: str = Field(
+        default="ipc:///tmp/cache/zmq_text_embedding", title="ZMQ IPC endpoint for text embeddings"
+    )
+    vision_endpoint: str = Field(
+        default="ipc:///tmp/cache/zmq_vision_embedding", title="ZMQ IPC endpoint for vision embeddings"
+    )
+    text_embedding_dim: int = Field(default=768, title="Text embedding dimension")
+    vision_embedding_dim: int = Field(default=768, title="Vision embedding dimension")
+    request_timeout_ms: int = Field(
+        default=1000, title="ZMQ request timeout in milliseconds"
+    )
+    linger_ms: int = Field(default=0, title="ZMQ socket linger in milliseconds")
+
+
 class SemanticSearchConfig(FrigateBaseModel):
     enabled: bool = Field(default=False, title="Enable semantic search.")
     reindex: Optional[bool] = Field(
@@ -139,6 +158,9 @@ class SemanticSearchConfig(FrigateBaseModel):
         default=None,
         title="The device key to use for semantic search.",
         description="This is an override, to target a specific device. See https://onnxruntime.ai/docs/execution-providers/ for more information",
+    )
+    external: Optional[ExternalEmbeddingsConfig] = Field(
+        default_factory=ExternalEmbeddingsConfig, title="External embeddings configuration"
     )
 
 

@@ -1,0 +1,95 @@
+# Example Frigate Configuration with External Models
+# This demonstrates how to configure external model processing
+
+# Enable external ZMQ object detection (enhanced from existing feature)
+detectors:
+  zmq_external:
+    type: zmq
+    endpoint: ipc:///tmp/cache/zmq_detector
+    use_external_models: true  # Enable new external models framework
+    request_timeout_ms: 500    # Adjust for your hardware
+    
+# Enable external embeddings for semantic search
+semantic_search:
+  enabled: true
+  model: jinav2
+  model_size: large
+  
+  # External embeddings configuration
+  external:
+    text_enabled: true
+    vision_enabled: true
+    text_endpoint: ipc:///tmp/cache/zmq_text_embedding
+    vision_endpoint: ipc:///tmp/cache/zmq_vision_embedding
+    text_embedding_dim: 768
+    vision_embedding_dim: 768
+    request_timeout_ms: 1000   # Embeddings may take longer
+
+# Camera configuration with external audio detection
+cameras:
+  front_door:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://camera/stream
+          roles:
+            - detect
+            - record
+        - path: rtsp://camera/audio
+          roles:
+            - audio
+    
+    # Standard audio configuration
+    audio:
+      enabled: true
+      listen:
+        - bark
+        - speech
+        - scream
+        - fire_alarm
+      
+      # External audio detection configuration
+      external:
+        enabled: true
+        endpoint: ipc:///tmp/cache/zmq_audio
+        request_timeout_ms: 300
+    
+    # Configure object detection to use external detector
+    detect:
+      enabled: true
+      width: 1280
+      height: 720
+      fps: 5
+    
+    objects:
+      track:
+        - person
+        - car
+        - dog
+      
+    # Enable semantic search triggers with external embeddings
+    semantic_search:
+      triggers:
+        person_at_door:
+          type: description
+          data: "person standing at front door"
+          threshold: 0.8
+          actions:
+            - notification
+
+# Audio transcription (still uses built-in models for now)
+audio_transcription:
+  enabled: true
+  device: CPU
+  model_size: small
+
+# Record configuration
+record:
+  enabled: true
+  retain:
+    days: 7
+
+# Snapshots
+snapshots:
+  enabled: true
+  timestamp: false
